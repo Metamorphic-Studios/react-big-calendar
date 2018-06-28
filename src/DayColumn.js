@@ -234,6 +234,7 @@ class DayColumn extends React.Component {
               height: `${height}%`,
               [isRtl ? 'right' : 'left']: `${Math.max(0, xOffset)}%`,
               width: `${width}%`,
+              ...event.style
             }}
             title={
               tooltip

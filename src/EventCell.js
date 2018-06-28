@@ -79,7 +79,7 @@ class EventCell extends React.Component {
       // it's in a row, etc. Useful for dnd, etc.
       <EventWrapper {...wrapperProps} isRow={true}>
         <div
-          style={{ ...props.style, ...style }}
+          style={{ ...props.style, ...style, ...event.style }}
           className={cn('rbc-event', className, xClassName, {
             'rbc-selected': selected,
             'rbc-event-allday': showAsAllDay,
