@@ -1,7 +1,7 @@
-import dates from './dates'
+import * as dates from './dates'
 
 const getDstOffset = (start, end) =>
-  Math.abs(start.getTimezoneOffset() - end.getTimezoneOffset())
+  start.getTimezoneOffset() - end.getTimezoneOffset()
 
 const getKey = (min, max, step, slots) =>
   `${+dates.startOf(min, 'minutes')}` +
@@ -11,13 +11,14 @@ const getKey = (min, max, step, slots) =>
 export function getSlotMetrics({ min: start, max: end, step, timeslots }) {
   const key = getKey(start, end, step, timeslots)
 
-  const totalMin = dates.diff(start, end, 'minutes') + getDstOffset(start, end)
-  const minutesFromMidnight = dates.diff(
-    dates.startOf(start, 'day'),
-    start,
-    'minutes'
-  )
-
+  // if the start is on a DST-changing day but *after* the moment of DST
+  // transition we need to add those extra minutes to our minutesFromMidnight
+  const daystart = dates.startOf(start, 'day')
+  const daystartdstoffset = getDstOffset(daystart, start)
+  const totalMin =
+    1 + dates.diff(start, end, 'minutes') + getDstOffset(start, end)
+  const minutesFromMidnight =
+    dates.diff(daystart, start, 'minutes') + daystartdstoffset
   const numGroups = Math.ceil(totalMin / (step * timeslots))
   const numSlots = numGroups * timeslots
 
@@ -95,15 +96,37 @@ export function getSlotMetrics({ min: start, max: end, step, timeslots }) {
       return slots[slot]
     },
 
+    closestSlotFromPoint(point, boundaryRect) {
+      let range = Math.abs(boundaryRect.top - boundaryRect.bottom)
+      return this.closestSlotToPosition((point.y - boundaryRect.top) / range)
+    },
+
+    closestSlotFromDate(date, offset = 0) {
+      if (dates.lt(date, start, 'minutes')) return slots[0]
+
+      const diffMins = dates.diff(start, date, 'minutes')
+      return slots[(diffMins - (diffMins % step)) / step + offset]
+    },
+
+    startsBeforeDay(date) {
+      return dates.lt(date, start, 'day')
+    },
+
+    startsAfterDay(date) {
+      return dates.gt(date, end, 'day')
+    },
+
     startsBefore(date) {
       return dates.lt(dates.merge(start, date), start, 'minutes')
     },
+
     startsAfter(date) {
       return dates.gt(dates.merge(end, date), end, 'minutes')
     },
-    getRange(rangeStart, rangeEnd) {
-      rangeStart = dates.min(end, dates.max(start, rangeStart))
-      rangeEnd = dates.min(end, dates.max(start, rangeEnd))
+
+    getRange(rangeStart, rangeEnd, ignoreMin, ignoreMax) {
+      if (!ignoreMin) rangeStart = dates.min(end, dates.max(start, rangeStart))
+      if (!ignoreMax) rangeEnd = dates.min(end, dates.max(start, rangeEnd))
 
       const rangeStartMin = positionFromDate(rangeStart)
       const rangeEndMin = positionFromDate(rangeEnd)
@@ -117,6 +140,13 @@ export function getSlotMetrics({ min: start, max: end, step, timeslots }) {
         end: positionFromDate(rangeEnd),
         endDate: rangeEnd,
       }
+    },
+
+    getCurrentTimePosition(rangeStart) {
+      const rangeStartMin = positionFromDate(rangeStart)
+      const top = (rangeStartMin / (step * numSlots)) * 100
+
+      return top
     },
   }
 }
