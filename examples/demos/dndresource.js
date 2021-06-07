@@ -1,14 +1,11 @@
 import React from 'react'
-import HTML5Backend from 'react-dnd-html5-backend'
-import { DragDropContext } from 'react-dnd'
-import BigCalendar from 'react-big-calendar'
+import { Calendar } from 'react-big-calendar'
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop'
 
-import 'react-big-calendar/lib/addons/dragAndDrop/styles.less'
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.scss'
 
-const DragAndDropCalendar = withDragAndDrop(BigCalendar)
+const DragAndDropCalendar = withDragAndDrop(Calendar)
 
-let allViews = Object.keys(BigCalendar.Views).map(k => BigCalendar.Views[k])
 const events = [
   {
     id: 0,
@@ -32,10 +29,38 @@ const events = [
     resourceId: 3,
   },
   {
+    id: 10,
+    title: 'Board meeting',
+    start: new Date(2018, 0, 30, 23, 0, 0),
+    end: new Date(2018, 0, 30, 23, 59, 0),
+    resourceId: 1,
+  },
+  {
     id: 11,
     title: 'Birthday Party',
     start: new Date(2018, 0, 30, 7, 0, 0),
     end: new Date(2018, 0, 30, 10, 30, 0),
+    resourceId: 4,
+  },
+  {
+    id: 12,
+    title: 'Board meeting',
+    start: new Date(2018, 0, 29, 23, 59, 0),
+    end: new Date(2018, 0, 30, 13, 0, 0),
+    resourceId: 1,
+  },
+  {
+    id: 13,
+    title: 'Board meeting',
+    start: new Date(2018, 0, 29, 23, 50, 0),
+    end: new Date(2018, 0, 30, 13, 0, 0),
+    resourceId: 2,
+  },
+  {
+    id: 14,
+    title: 'Board meeting',
+    start: new Date(2018, 0, 29, 23, 40, 0),
+    end: new Date(2018, 0, 30, 13, 0, 0),
     resourceId: 4,
   },
 ]
@@ -57,16 +82,23 @@ class Dnd extends React.Component {
     this.moveEvent = this.moveEvent.bind(this)
   }
 
-  moveEvent({ event, start, end, resourceId }) {
-    console.log('moveEvent.args=', { event, start, end, resourceId })
+  moveEvent({ event, start, end, resourceId, isAllDay: droppedOnAllDaySlot }) {
     const { events } = this.state
 
     const idx = events.indexOf(event)
-    const updatedEvent = { ...event, start, end, resourceId }
-    console.log('events', events)
+    let allDay = event.allDay
+
+    if (!event.allDay && droppedOnAllDaySlot) {
+      allDay = true
+    } else if (event.allDay && !droppedOnAllDaySlot) {
+      allDay = false
+    }
+
+    const updatedEvent = { ...event, start, end, resourceId, allDay }
+
     const nextEvents = [...events]
     nextEvents.splice(idx, 1, updatedEvent)
-    console.log('nextEvents', nextEvents)
+
     this.setState({
       events: nextEvents,
     })
@@ -90,6 +122,7 @@ class Dnd extends React.Component {
     return (
       <DragAndDropCalendar
         selectable
+        localizer={this.props.localizer}
         events={this.state.events}
         onEventDrop={this.moveEvent}
         resizable
@@ -98,10 +131,12 @@ class Dnd extends React.Component {
         resourceTitleAccessor="resourceTitle"
         onEventResize={this.resizeEvent}
         defaultView="day"
+        step={15}
+        showMultiDayTimes={true}
         defaultDate={new Date(2018, 0, 29)}
       />
     )
   }
 }
 
-export default DragDropContext(HTML5Backend)(Dnd)
+export default Dnd
